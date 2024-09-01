@@ -32,24 +32,55 @@ void parse_command(char *command, char **args)
 
 void execute_command(char **args)
 {
-    pid_t PID = fork();
-
-    if (PID == -1) {
-        perror("Failed to fork");
-        exit(-1);
+    if (args[0] == NULL) {
+        return;
     }
 
-    else if (PID == 0) {
-        if (execvp(args[0], args) == -1) {
-            perror("Failed to execute command");
-            exit(-1);
+    if (strcmp(args[0], "cd") == 0) {
+        if (args[1] == NULL) {
+            fprintf(stderr, "helioshell: expected argument to \"cd\"\n");
         }
 
-        exit(EXIT_FAILURE);
+        else {
+            if (chdir(args[1]) != 0) {
+                perror("helioshell");
+            }
+        }
+    }
+
+    else if (strcmp(args[0], "exit") == 0) {
+        exit(0);
+    }
+
+    else if (strcmp(args[0], "help") == 0) {
+        printf("helioshell: A simple shell implementation.\n\nSupported commands:\n");
+        printf("   cd <directory>: Change the current working directory.\n");
+        printf("   exit: Exit the shell.\n");
+        printf("   help: Display this help message.\n");
+        printf("You can also run any other command available in your system. Note that some commands may not work.\n");
     }
 
     else {
-        wait(NULL);
+        pid_t PID = fork();
+
+        if (PID == -1) {
+            perror("fork failed");
+            exit(EXIT_FAILURE);
+        }
+
+        else if (PID == 0) {
+            // Child process
+            if (execvp(args[0], args) == -1) {
+                perror("helioshell");
+            }
+
+            exit(EXIT_FAILURE);
+        }
+
+        else {
+            // Parent process
+            wait(NULL); // Wait for child process to finish
+        }
     }
 }
 
@@ -60,7 +91,7 @@ int main()
     char *args[MAX_NUM_ARGS];
 
     while (1) {
-        printf("elsayedShell> ");
+        printf("helioshell> ");
         read_command(command);
         parse_command(command, args);
         execute_command(args);
